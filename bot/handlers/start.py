@@ -7,7 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 
-from bot.keyboards import MainMenuKeyboard
+from bot.keyboards import MainMenuKeyboard, SettingsKeyboard
 from bot.database import get_db
 from bot.states import QuizStates
 
@@ -31,15 +31,15 @@ async def cmd_start(message: Message, state: FSMContext):
         quiz = await db.get_quiz_by_share_code(share_code)
         
         if quiz:
-            # Testni topildi, boshlash menyusini ko'rsatish
+            # Test topildi, to'liq quiz menyusini ko'rsatish
             await message.answer(
                 f"📝 <b>Test topildi!</b>\n\n"
                 f"📌 Sarlavha: <b>{quiz.title}</b>\n"
                 f"❓ Savollar soni: <b>{quiz.total_questions}</b>\n"
                 f"⏱ Vaqt: <b>{quiz.time_display}</b>\n\n"
-                f"Testni boshlash uchun quyidagi tugmani bosing:",
+                f"Quyidagi tugmalardan birini tanlang:",
                 parse_mode="HTML",
-                reply_markup=MainMenuKeyboard.main_menu()
+                reply_markup=SettingsKeyboard.quiz_ready(quiz.id)
             )
             
             # Quizni state'ga saqlash

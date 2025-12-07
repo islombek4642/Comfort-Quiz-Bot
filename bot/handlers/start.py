@@ -72,9 +72,10 @@ async def cmd_start(message: Message, state: FSMContext):
     )
 
 
+@router.message(Command("help"))
 @router.message(F.text == "❓ Yordam")
 async def show_help(message: Message):
-    """Yordam ko'rsatish"""
+    """Yordam ko'rsatish (/help va "❓ Yordam" tugmasi)"""
     help_text = (
         "📖 <b>Qo'llanma</b>\n\n"
         "<b>1. Test yaratish:</b>\n"

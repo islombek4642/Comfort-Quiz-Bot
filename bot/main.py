@@ -14,6 +14,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
+from aiogram.types import BotCommand
 
 from bot.config import config
 from bot.database import get_db
@@ -44,6 +45,12 @@ async def on_startup(bot: Bot):
     # Bot ma'lumotlarini olish
     bot_info = await bot.get_me()
     logger.info(f"Bot: @{bot_info.username} ({bot_info.full_name})")
+
+    # Bot komandalar menyusi (/start va /help)
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Botni boshlash va asosiy menyuni ko'rish"),
+        BotCommand(command="help", description="Yordam va foydalanish bo'yicha ma'lumot")
+    ])
     
     # Admin'larga xabar yuborish
     if config.bot.admin_ids:

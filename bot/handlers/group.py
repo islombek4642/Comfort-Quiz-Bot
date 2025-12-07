@@ -128,7 +128,7 @@ async def start_quiz_in_group(message: Message, bot: Bot):
             f"📚 <b>Test rejimini tanlang:</b>\n\n"
             f"📊 Jami savollar: <b>{total_questions}</b> ta\n\n"
             f"• <b>To'liq test</b> - Barcha {total_questions} ta savolni yechish\n"
-            f"• <b>Orqaliq test</b> - Masalan, 50-100 savollarni yechish\n"
+            f"• <b>Oraliq test</b> - Masalan, 50-100 savollarni yechish\n"
             f"• <b>Tasodifiy test</b> - Masalan, 30 ta tasodifiy savol",
             parse_mode="HTML",
             reply_markup=QuizKeyboard.group_quiz_mode_menu(message.chat.id)
@@ -563,16 +563,41 @@ async def restart_group_quiz(callback: CallbackQuery, bot: Bot):
         quiz=quiz,
         creator_id=callback.from_user.id
     )
-    
-    await callback.message.answer(
-        f"🔄 <b>{quiz.title}</b>\n\n"
-        f"Test qayta boshlanmoqda...",
-        parse_mode="HTML"
-    )
-    
-    await callback.answer()
-    await asyncio.sleep(2)
-    await show_group_question(callback.message, session)
+
+    total_questions = len(quiz.questions)
+
+    # Agar 20 ta yoki undan kam savol bo'lsa, to'g'ridan-to'g'ri to'liq testni boshlash
+    if total_questions <= 20:
+        from bot.models import QuizSettings
+        settings = QuizSettings(quiz_mode="full")
+        session.settings = settings
+        session._prepare_quiz_with_settings()
+
+        await callback.message.answer(
+            f"🔄 <b>{quiz.title}</b>\n\n"
+            f"📚 <b>To'liq test</b> tanlandi\n"
+            f"Savollar soni: {total_questions}\n\n"
+            f"Test 10 soniyadan keyin boshlanadi...",
+            parse_mode="HTML"
+        )
+
+        await callback.answer()
+        await asyncio.sleep(10)
+        await show_group_question(callback.message, session)
+    else:
+        # 20 dan ko'p savol bo'lsa, rejim tanlash menyusini ko'rsatish
+        await callback.message.answer(
+            f"🔄 <b>{quiz.title}</b>\n\n"
+            f"📚 <b>Test rejimini tanlang:</b>\n\n"
+            f"📊 Jami savollar: <b>{total_questions}</b> ta\n\n"
+            f"• <b>To'liq test</b> - Barcha {total_questions} ta savolni yechish\n"
+            f"• <b>Oraliq test</b> - Masalan, 50-100 savollarni yechish\n"
+            f"• <b>Tasodifiy test</b> - Masalan, 30 ta tasodifiy savol",
+            parse_mode="HTML",
+            reply_markup=QuizKeyboard.group_quiz_mode_menu(callback.message.chat.id)
+        )
+
+        await callback.answer()
 
 
 # Bot guruhga qo'shilganda

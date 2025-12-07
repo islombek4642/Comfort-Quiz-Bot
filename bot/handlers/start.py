@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from bot.keyboards import MainMenuKeyboard, SettingsKeyboard
 from bot.database import get_db
 from bot.states import QuizStates
+from bot.models import Quiz
 
 router = Router(name="start")
 
@@ -31,6 +32,29 @@ async def cmd_start(message: Message, state: FSMContext):
         quiz = await db.get_quiz_by_share_code(share_code)
         
         if quiz:
+            # Agar bu test boshqa foydalanuvchi tomonidan yaratilgan bo'lsa,
+            # joriy foydalanuvchi uchun shaxsiy nusxa yaratamiz
+            if quiz.creator_id != message.from_user.id:
+                cloned_quiz = Quiz(
+                    title=quiz.title,
+                    questions=quiz.questions,
+                    creator_id=message.from_user.id,
+                    time_per_question=quiz.time_per_question,
+                    shuffle_options=quiz.shuffle_options,
+                )
+
+                # Yangi quizni saqlash
+                await db.save_quiz(cloned_quiz)
+
+                # Statistika: foydalanuvchi uchun "yaratilgan test" sifatida hisoblash
+                await db.update_user_statistics(
+                    user_id=message.from_user.id,
+                    username=message.from_user.username or message.from_user.first_name,
+                    quiz_created=True
+                )
+
+                quiz = cloned_quiz
+
             # Test topildi, to'liq quiz menyusini ko'rsatish
             await message.answer(
                 f"📝 <b>Test topildi!</b>\n\n"

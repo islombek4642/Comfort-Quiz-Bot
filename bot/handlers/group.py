@@ -6,6 +6,7 @@ import asyncio
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, ChatMemberUpdated
 from aiogram.filters import ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
+from aiogram.exceptions import TelegramRetryAfter
 
 from bot.keyboards import QuizKeyboard, SettingsKeyboard
 from bot.services.quiz_manager import quiz_manager
@@ -351,8 +352,19 @@ async def group_countdown_timer(question_msg: Message, session, question_index: 
         
         if current_session.next_question():
             await asyncio.sleep(3)  # 3 soniya kutish (odamlar o'qishi uchun)
-            # Keyingi savolni YANGI xabar sifatida yuborish
-            await show_group_question(question_msg, current_session)
+            # Keyingi savolni YANGI xabar sifatida yuborish, flood control xatolarini hisobga olib
+            try:
+                await show_group_question(question_msg, current_session)
+            except TelegramRetryAfter as e:
+                # Telegram flood control: biroz kutib, yana urinib ko'rish
+                await asyncio.sleep(e.retry_after)
+                try:
+                    await show_group_question(question_msg, current_session)
+                except Exception:
+                    pass
+            except Exception:
+                # Har qanday boshqa xatoni e'tiborsiz qoldirish (testni to'xtatmaslik uchun)
+                pass
         else:
             await asyncio.sleep(2)
             await finish_group_quiz(question_msg, current_session)

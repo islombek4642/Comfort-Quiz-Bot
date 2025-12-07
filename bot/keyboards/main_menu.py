@@ -110,12 +110,12 @@ class MainMenuKeyboard:
         builder.row(
             InlineKeyboardButton(
                 text="📤 Do'stlarga ulashish",
-                switch_inline_query=f"quiz_{share_code}"
+                url=share_link
             )
         )
         builder.row(
             InlineKeyboardButton(
-                text="🔗 Havola nusxalash",
+                text="🔗 Havolani ko'rish",
                 callback_data=f"copy_link:{quiz_id}"
             )
         )

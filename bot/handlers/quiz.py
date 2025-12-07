@@ -311,7 +311,13 @@ async def copy_link(callback: CallbackQuery, bot: Bot):
     if quiz:
         bot_info = await bot.get_me()
         link = f"https://t.me/{bot_info.username}?start=quiz_{quiz.share_code}"
-        await callback.answer(f"📋 Havola: {link}", show_alert=True)
+        # Havolani oddiy xabar ko'rinishida yuborish, foydalanuvchi oson nusxalashi yoki ulashishi uchun
+        await callback.message.answer(
+            f"🔗 <b>Test havolasi</b>\n\n"
+            f"<code>{link}</code>",
+            parse_mode="HTML"
+        )
+        await callback.answer()
     else:
         await callback.answer("❌ Test topilmadi", show_alert=True)
 

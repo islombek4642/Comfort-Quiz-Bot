@@ -351,8 +351,8 @@ async def group_countdown_timer(question_msg: Message, session, question_index: 
         
         if current_session.next_question():
             await asyncio.sleep(3)  # 3 soniya kutish (odamlar o'qishi uchun)
-            # Xabarni edit qilish (yangi xabar yuborish emas)
-            await update_group_question(question_msg, current_session)
+            # Keyingi savolni YANGI xabar sifatida yuborish
+            await show_group_question(question_msg, current_session)
         else:
             await asyncio.sleep(2)
             await finish_group_quiz(question_msg, current_session)

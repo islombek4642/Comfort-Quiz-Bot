@@ -1,0 +1,14 @@
+# Telegram Bot Framework
+aiogram==3.13.1
+
+# DOCX fayllarni o'qish
+python-docx==1.1.2
+
+# Database
+aiosqlite==0.20.0
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Typing extensions (Python 3.9 uchun)
+typing-extensions>=4.0.0

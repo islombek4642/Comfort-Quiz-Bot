@@ -105,12 +105,10 @@ class MainMenuKeyboard:
         """Test ulashish menyusi"""
         builder = InlineKeyboardBuilder()
         
-        share_link = f"https://t.me/{bot_username}?start=quiz_{share_code}"
-        
         builder.row(
             InlineKeyboardButton(
                 text="📤 Do'stlarga ulashish",
-                url=share_link
+                switch_inline_query=f"quiz_{share_code}"
             )
         )
         builder.row(

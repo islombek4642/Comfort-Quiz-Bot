@@ -4,10 +4,11 @@ Test jarayonini boshqarish
 """
 import asyncio
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 from aiogram.fsm.context import FSMContext
 
 from bot.states import QuizStates
+from uuid import uuid4
 from bot.keyboards import MainMenuKeyboard, QuizKeyboard, SettingsKeyboard
 from bot.services import QuizManager, StatisticsService
 from bot.services.quiz_manager import quiz_manager
@@ -341,3 +342,42 @@ async def share_test_menu(message: Message):
         parse_mode="HTML",
         reply_markup=MainMenuKeyboard.my_quizzes(quizzes)
     )
+
+
+@router.inline_query()
+async def inline_quiz_search(inline_query: InlineQuery, bot: Bot):
+    """Inline rejimda quiz_XXXX kodlari bo'yicha testni ulashish"""
+    query = (inline_query.query or "").strip()
+
+    # Faqat quiz_ bilan boshlanadigan so'rovlar uchun ishlaymiz
+    if not query.startswith("quiz_"):
+        await inline_query.answer([], cache_time=1, is_personal=True)
+        return
+
+    share_code = query.replace("quiz_", "").upper()
+
+    db = await get_db()
+    quiz = await db.get_quiz_by_share_code(share_code)
+
+    if not quiz:
+        await inline_query.answer([], cache_time=1, is_personal=True)
+        return
+
+    bot_info = await bot.get_me()
+    link = f"https://t.me/{bot_info.username}?start=quiz_{quiz.share_code}"
+
+    result = InlineQueryResultArticle(
+        id=str(uuid4()),
+        title=f"{quiz.title}",
+        description=f"Savollar soni: {quiz.total_questions}",
+        input_message_content=InputTextMessageContent(
+            message_text=(
+                f"📝 <b>{quiz.title}</b>\n"
+                f"❓ Savollar soni: {quiz.total_questions}\n\n"
+                f"🔗 Test havolasi:\n{link}"
+            ),
+            parse_mode="HTML"
+        )
+    )
+
+    await inline_query.answer([result], cache_time=1, is_personal=True)

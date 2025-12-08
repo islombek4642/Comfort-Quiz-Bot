@@ -4,6 +4,7 @@ Statistika ko'rish
 """
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.context import FSMContext
 
 from bot.keyboards import MainMenuKeyboard, QuizKeyboard
 from bot.services import StatisticsService

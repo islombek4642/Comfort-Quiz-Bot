@@ -13,16 +13,9 @@ from bot.database import get_db
 router = Router(name="statistics")
 
 
-@router.message(F.text.func(lambda t: isinstance(t, str) and "Statistika" in t))
-async def show_statistics_menu(message: Message, state: FSMContext):
+@router.message(F.text.in_(["📊 Statistika", "Statistika"]))
+async def show_statistics_menu(message: Message):
     """Statistika menyusini ko'rsatish"""
-    from bot.states import QuizStates
-    
-    current_state = await state.get_state()
-    # Agar input holatida bo'lsa (raqam yoki oraliq kiritish), ignore qil
-    if current_state in [QuizStates.entering_quiz_range, QuizStates.entering_question_count]:
-        return
-    
     await message.answer(
         "📊 <b>Statistika</b>\n\n"
         "Quyidagilardan birini tanlang:",

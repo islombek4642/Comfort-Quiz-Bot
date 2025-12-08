@@ -323,14 +323,9 @@ async def copy_link(callback: CallbackQuery, bot: Bot):
         await callback.answer("❌ Test topilmadi", show_alert=True)
 
 
-@router.message(F.text.func(lambda t: isinstance(t, str) and "Test ulashish" in t))
-async def share_test_menu(message: Message, state: FSMContext):
+@router.message(F.text.in_(["🔗 Test ulashish", "Test ulashish"]))
+async def share_test_menu(message: Message):
     """Test ulashish menyusi"""
-    current_state = await state.get_state()
-    # Agar input holatida bo'lsa (raqam yoki oraliq kiritish), ignore qil
-    if current_state in [QuizStates.entering_quiz_range, QuizStates.entering_question_count]:
-        return
-    
     db = await get_db()
     quizzes = await db.get_user_quizzes(message.from_user.id)
     

@@ -8,10 +8,15 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from bot.states import QuizStates
-from bot.keyboards import QuizKeyboard
-from bot.services.quiz_manager import quiz_manager
-from bot.models import QuizSettings
+from bot.keyboards import MainMenuKeyboard, SettingsKeyboard
+from bot.models import Quiz, Question
 from bot.database import get_db
+from bot.constants import (
+    ERROR_TEST_NOT_FOUND,
+    ERROR_ACTIVE_TEST_EXISTS,
+    MSG_RANGE_FORMAT,
+    MSG_NUMBER_RANGE
+)
 from bot.handlers.quiz import show_question
 
 router = Router(name="quiz_settings")
@@ -29,7 +34,7 @@ async def start_quiz_with_settings(callback: CallbackQuery, state: FSMContext):
         "• <b>Oraliq test</b> - Masalan, 50-100 savollarni yechish\n"
         "• <b>Tasodifiy test</b> - Masalan, 30 ta tasodifiy savol",
         parse_mode="HTML",
-        reply_markup=QuizKeyboard.quiz_mode_menu()
+        reply_markup=MainMenuKeyboard.quiz_mode_menu()
     )
     await state.set_state(QuizStates.choosing_quiz_mode)
     await callback.answer()
@@ -45,12 +50,12 @@ async def set_full_quiz(callback: CallbackQuery, state: FSMContext):
     quiz = await db.get_quiz(quiz_id)
     
     if not quiz:
-        await callback.answer("❌ Test topilmadi", show_alert=True)
+        await callback.answer(ERROR_TEST_NOT_FOUND, show_alert=True)
         return
     
     # Mavjud sessiyani tekshirish
     if quiz_manager.has_active_session(callback.from_user.id):
-        await callback.answer("⚠️ Sizda allaqachon faol test bor!", show_alert=True)
+        await callback.answer(ERROR_ACTIVE_TEST_EXISTS, show_alert=True)
         return
     
     # To'liq test sozlamalari
@@ -84,6 +89,9 @@ async def set_full_quiz(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(QuizStates.choosing_quiz_mode, F.data == "quiz_mode:range")
 async def set_range_quiz(callback: CallbackQuery, state: FSMContext):
     """Oraliq test rejimi"""
+    data = await state.get_data()
+    quiz_id = data.get("quiz_id")
+    
     await callback.message.edit_text(
         "🔢 <b>Test oralig'ini kiriting:</b>\n\n"
         "Misol: <code>1-50</code> yoki <code>50-100</code>\n\n"
@@ -110,6 +118,10 @@ async def process_quiz_range(message: Message, state: FSMContext):
         
         data = await state.get_data()
         quiz_id = data.get("quiz_id")
+        
+        if not quiz_id:
+            await message.answer("❌ Test topilmadi")
+            return
         
         db = await get_db()
         quiz = await db.get_quiz(quiz_id)
@@ -151,7 +163,7 @@ async def process_quiz_range(message: Message, state: FSMContext):
         await message.answer(
             f"🎯 <b>{quiz.title}</b>\n\n"
             f"Test boshlanmoqda...\n"
-            f"Savollar soni: {len(quiz.questions)}\n"
+            f"Savollar soni: {len(session.quiz.questions)}\n"
             f"Vaqt: {quiz.time_display}",
             parse_mode="HTML"
         )
@@ -162,9 +174,7 @@ async def process_quiz_range(message: Message, state: FSMContext):
         
     except (ValueError, IndexError):
         await message.answer(
-            "❌ <b>Noto'g'ri format!</b>\n\n"
-            "Iltimos, quyidagi ko'rinishda kiriting:\n"
-            "<code>1-50</code> yoki <code>50-100</code>",
+            f"{ERROR_INVALID_FORMAT}\n\n{MSG_RANGE_FORMAT}",
             parse_mode="HTML"
         )
 
@@ -193,6 +203,7 @@ async def set_random_quiz(callback: CallbackQuery, state: FSMContext):
         parse_mode="HTML"
     )
     await state.set_state(QuizStates.entering_question_count)
+    await state.update_data(quiz_id=quiz_id)
     await callback.answer()
 
 
@@ -207,6 +218,10 @@ async def process_question_count(message: Message, state: FSMContext):
         
         data = await state.get_data()
         quiz_id = data.get("quiz_id")
+        
+        if not quiz_id:
+            await message.answer("❌ Test topilmadi")
+            return
         
         db = await get_db()
         quiz = await db.get_quiz(quiz_id)
@@ -247,7 +262,7 @@ async def process_question_count(message: Message, state: FSMContext):
         await message.answer(
             f"🎯 <b>{quiz.title}</b>\n\n"
             f"Test boshlanmoqda...\n"
-            f"Savollar soni: {len(quiz.questions)}\n"
+            f"Savollar soni: {len(session.quiz.questions)}\n"
             f"Vaqt: {quiz.time_display}",
             parse_mode="HTML"
         )
@@ -258,8 +273,6 @@ async def process_question_count(message: Message, state: FSMContext):
         
     except ValueError:
         await message.answer(
-            "❌ <b>Noto'g'ri son kiritildi!</b>\n\n"
-            "Iltimos, 1 dan 200 gacha bo'lgan son kiriting.\n"
-            "Masalan: <code>30</code>",
+            f"{ERROR_INVALID_NUMBER}\n\n{MSG_NUMBER_RANGE}",
             parse_mode="HTML"
         )

@@ -35,10 +35,6 @@ class MainMenuKeyboard:
             KeyboardButton(text="📋 Mening testlarim")
         )
         builder.row(
-            KeyboardButton(text="📊 Statistika"),
-            KeyboardButton(text="🔗 Test ulashish")
-        )
-        builder.row(
             KeyboardButton(text="❓ Yordam")
         )
         return builder.as_markup(resize_keyboard=True)

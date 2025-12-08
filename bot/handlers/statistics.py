@@ -13,8 +13,12 @@ router = Router(name="statistics")
 
 
 @router.message(F.text.func(lambda t: isinstance(t, str) and "Statistika" in t))
-async def show_statistics_menu(message: Message):
+async def show_statistics_menu(message: Message, state: FSMContext):
     """Statistika menyusini ko'rsatish"""
+    current_state = await state.get_state()
+    if current_state:  # Agar biror state'da bo'lsa, ignore qil
+        return
+    
     await message.answer(
         "📊 <b>Statistika</b>\n\n"
         "Quyidagilardan birini tanlang:",

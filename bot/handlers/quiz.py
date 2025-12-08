@@ -324,8 +324,12 @@ async def copy_link(callback: CallbackQuery, bot: Bot):
 
 
 @router.message(F.text.func(lambda t: isinstance(t, str) and "Test ulashish" in t))
-async def share_test_menu(message: Message):
+async def share_test_menu(message: Message, state: FSMContext):
     """Test ulashish menyusi"""
+    current_state = await state.get_state()
+    if current_state:  # Agar biror state'da bo'lsa, ignore qil
+        return
+    
     db = await get_db()
     quizzes = await db.get_user_quizzes(message.from_user.id)
     

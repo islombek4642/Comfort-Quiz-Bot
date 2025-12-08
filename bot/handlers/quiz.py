@@ -323,7 +323,7 @@ async def copy_link(callback: CallbackQuery, bot: Bot):
         await callback.answer("❌ Test topilmadi", show_alert=True)
 
 
-@router.message(F.text == "🔗 Test ulashish")
+@router.message(F.text.in_({"🔗 Test ulashish", "Test ulashish"}))
 async def share_test_menu(message: Message):
     """Test ulashish menyusi"""
     db = await get_db()

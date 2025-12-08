@@ -212,20 +212,6 @@ class QuizKeyboard:
         return builder.as_markup()
     
     @staticmethod
-    def stats_back_button() -> InlineKeyboardMarkup:
-        """Statistikadan orqaga tugmasi"""
-        builder = InlineKeyboardBuilder()
-        
-        builder.row(
-            InlineKeyboardButton(text="⬅️ Orqaga", callback_data="stats_menu")
-        )
-        builder.row(
-            InlineKeyboardButton(text="🏠 Bosh menyu", callback_data="back_to_main")
-        )
-        
-        return builder.as_markup()
-    
-    @staticmethod
     def quiz_mode_menu() -> InlineKeyboardMarkup:
         """Test rejimi menyusi (Shaxsiy quiz)"""
         builder = InlineKeyboardBuilder()
@@ -238,7 +224,7 @@ class QuizKeyboard:
         )
         builder.row(
             InlineKeyboardButton(
-                text="🔢 Orqaliq test",
+                text="🔢 Oraliq test",
                 callback_data="quiz_mode:range"
             )
         )
@@ -270,7 +256,7 @@ class QuizKeyboard:
         )
         builder.row(
             InlineKeyboardButton(
-                text="🔢 Orqaliq test",
+                text="🔢 Oraliq test",
                 callback_data=f"group_quiz_mode:range:{chat_id}"
             )
         )

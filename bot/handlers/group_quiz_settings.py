@@ -91,7 +91,7 @@ async def process_group_quiz_input(message: Message):
     if message.from_user.id != session.creator_id:
         return
     
-    # Orqaliq test (1-50 formatida)
+    # Oraliq test (1-50 formatida)
     if '-' in message.text:
         try:
             parts = message.text.strip().split('-')
@@ -103,7 +103,7 @@ async def process_group_quiz_input(message: Message):
             if start < 1 or end <= start:
                 raise ValueError
             
-            # Orqaliq tekshirish
+            # Oraliq tekshirish
             if end > len(session.quiz.questions):
                 await message.answer(
                     f"❌ Noto'g'ri oraliq. Test {len(session.quiz.questions)} ta savolga ega.\n"
@@ -111,7 +111,7 @@ async def process_group_quiz_input(message: Message):
                 )
                 return
             
-            # Orqaliq test sozlamalari
+            # Oraliq test sozlamalari
             settings = QuizSettings(
                 quiz_mode="range",
                 start_question=start,
@@ -122,7 +122,7 @@ async def process_group_quiz_input(message: Message):
             
             await message.answer(
                 f"🎯 <b>{session.quiz.title}</b>\n\n"
-                f"🔢 <b>Orqaliq test</b> tanlandi\n"
+                f"🔢 <b>Oraliq test</b> tanlandi\n"
                 f"Savollar: {start}-{end}\n"
                 f"Jami: {len(session.quiz.questions)} ta savol\n\n"
                 f"Test 10 soniyadan keyin boshlanadi...",
@@ -189,7 +189,7 @@ async def process_group_quiz_range(message: Message, state: FSMContext):
     """Guruh quiz oralig'ini qabul qilish (Faqat private chat'da)"""
     data = await state.get_data()
     
-    # Faqat group_chat_id bo'lsa, bu orqaliq test uchun
+    # Faqat group_chat_id bo'lsa, bu oraliq test uchun
     if "group_chat_id" not in data:
         return
     

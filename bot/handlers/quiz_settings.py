@@ -26,7 +26,7 @@ async def start_quiz_with_settings(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "📚 <b>Test rejimini tanlang:</b>\n\n"
         "• <b>To'liq test</b> - Barcha savollarni yechish\n"
-        "• <b>Orqaliq test</b> - Masalan, 50-100 savollarni yechish\n"
+        "• <b>Oraliq test</b> - Masalan, 50-100 savollarni yechish\n"
         "• <b>Tasodifiy test</b> - Masalan, 30 ta tasodifiy savol",
         parse_mode="HTML",
         reply_markup=QuizKeyboard.quiz_mode_menu()
@@ -83,7 +83,7 @@ async def set_full_quiz(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(QuizStates.choosing_quiz_mode, F.data == "quiz_mode:range")
 async def set_range_quiz(callback: CallbackQuery, state: FSMContext):
-    """Orqaliq test rejimi"""
+    """Oraliq test rejimi"""
     await callback.message.edit_text(
         "🔢 <b>Test oralig'ini kiriting:</b>\n\n"
         "Misol: <code>1-50</code> yoki <code>50-100</code>\n\n"
@@ -97,7 +97,7 @@ async def set_range_quiz(callback: CallbackQuery, state: FSMContext):
 
 @router.message(QuizStates.entering_quiz_range)
 async def process_quiz_range(message: Message, state: FSMContext):
-    """Test oralig'ini qabul qilish"""
+    """Test oraliqini qabul qilish"""
     try:
         parts = message.text.strip().split('-')
         if len(parts) != 2:
@@ -118,7 +118,7 @@ async def process_quiz_range(message: Message, state: FSMContext):
             await message.answer("❌ Test topilmadi")
             return
         
-        # Orqaliq tekshirish
+        # Oraliq tekshirish
         if end > len(quiz.questions):
             await message.answer(
                 f"❌ Noto'g'ri oraliq. Test {len(quiz.questions)} ta savolga ega.\n"
@@ -131,7 +131,7 @@ async def process_quiz_range(message: Message, state: FSMContext):
             await message.answer("⚠️ Sizda allaqachon faol test bor!")
             return
         
-        # Orqaliq test sozlamalari
+        # Oraliq test sozlamalari
         settings = QuizSettings(
             quiz_mode="range",
             start_question=start,

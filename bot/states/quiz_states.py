@@ -26,7 +26,7 @@ class QuizStates(StatesGroup):
     # Test rejimi tanlash holati
     choosing_quiz_mode = State()
     
-    # Orqaliq test oralig'i kiriting
+    # Oraliq test oralig'i kiriting
     entering_quiz_range = State()
     
     # Tasodifiy test savollar soni kiriting

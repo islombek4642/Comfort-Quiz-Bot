@@ -97,7 +97,7 @@ class QuizSession:
     
     def _prepare_quiz_with_settings(self) -> None:
         """Quizni sozlamalar asosida tayyorlash"""
-        # Orqaliq test
+        # Oraliq test
         if self.settings.quiz_mode == "range" and self.settings.end_question:
             start_idx = max(0, self.settings.start_question - 1)
             end_idx = min(self.settings.end_question, len(self.quiz.questions))

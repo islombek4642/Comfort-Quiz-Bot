@@ -13,7 +13,7 @@ from bot.database import get_db
 router = Router(name="statistics")
 
 
-@router.message(F.text.in_(["📊 Statistika", "Statistika"]))
+@router.message(F.text == "📊 Statistika")
 async def show_statistics_menu(message: Message):
     """Statistika menyusini ko'rsatish"""
     await message.answer(

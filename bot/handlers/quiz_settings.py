@@ -8,8 +8,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from bot.states import QuizStates
-from bot.keyboards import MainMenuKeyboard, SettingsKeyboard
-from bot.models import Quiz, Question
+from bot.keyboards import MainMenuKeyboard, SettingsKeyboard, QuizKeyboard
+from bot.models import Quiz, Question, QuizSettings
 from bot.database import get_db
 from bot.constants import (
     ERROR_TEST_NOT_FOUND,
@@ -18,6 +18,7 @@ from bot.constants import (
     MSG_NUMBER_RANGE
 )
 from bot.handlers.quiz import show_question
+from bot.services.quiz_manager import quiz_manager
 
 router = Router(name="quiz_settings")
 
@@ -34,7 +35,7 @@ async def start_quiz_with_settings(callback: CallbackQuery, state: FSMContext):
         "• <b>Oraliq test</b> - Masalan, 50-100 savollarni yechish\n"
         "• <b>Tasodifiy test</b> - Masalan, 30 ta tasodifiy savol",
         parse_mode="HTML",
-        reply_markup=MainMenuKeyboard.quiz_mode_menu()
+        reply_markup=QuizKeyboard.quiz_mode_menu()
     )
     await state.set_state(QuizStates.choosing_quiz_mode)
     await callback.answer()
@@ -189,7 +190,7 @@ async def set_random_quiz(callback: CallbackQuery, state: FSMContext):
     quiz = await db.get_quiz(quiz_id)
     
     if not quiz:
-        await callback.answer("❌ Test topilmadi", show_alert=True)
+        await callback.answer(ERROR_TEST_NOT_FOUND, show_alert=True)
         return
     
     total_questions = len(quiz.questions)

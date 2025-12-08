@@ -16,8 +16,11 @@ router = Router(name="statistics")
 @router.message(F.text.func(lambda t: isinstance(t, str) and "Statistika" in t))
 async def show_statistics_menu(message: Message, state: FSMContext):
     """Statistika menyusini ko'rsatish"""
+    from bot.states import QuizStates
+    
     current_state = await state.get_state()
-    if current_state:  # Agar biror state'da bo'lsa, ignore qil
+    # Agar input holatida bo'lsa (raqam yoki oraliq kiritish), ignore qil
+    if current_state in [QuizStates.entering_quiz_range, QuizStates.entering_question_count]:
         return
     
     await message.answer(

@@ -327,7 +327,8 @@ async def copy_link(callback: CallbackQuery, bot: Bot):
 async def share_test_menu(message: Message, state: FSMContext):
     """Test ulashish menyusi"""
     current_state = await state.get_state()
-    if current_state:  # Agar biror state'da bo'lsa, ignore qil
+    # Agar input holatida bo'lsa (raqam yoki oraliq kiritish), ignore qil
+    if current_state in [QuizStates.entering_quiz_range, QuizStates.entering_question_count]:
         return
     
     db = await get_db()

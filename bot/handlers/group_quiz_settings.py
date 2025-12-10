@@ -53,6 +53,12 @@ async def group_quiz_mode_selection(callback: CallbackQuery, state: FSMContext):
     
     # Orqaliq test
     elif mode == "range":
+        # FIX: state data sohralanadi
+        await state.update_data(
+            group_chat_id=chat_id,
+            group_mode="range",
+            waiting_for_range=True
+        )
         await callback.message.edit_text(
             "🔢 <b>Test oralig'ini kiriting:</b>\n\n"
             "Misol: <code>1-50</code> yoki <code>50-100</code>\n\n"
@@ -60,11 +66,16 @@ async def group_quiz_mode_selection(callback: CallbackQuery, state: FSMContext):
             "Ikkinchi raqam - oxirgi savol",
             parse_mode="HTML"
         )
-        await state.update_data(group_chat_id=chat_id)
         await callback.answer()
     
     # Tasodifiy test
     elif mode == "random":
+        # FIX: state data sohralanadi
+        await state.update_data(
+            group_chat_id=chat_id,
+            group_mode="random",
+            waiting_for_random=True
+        )
         total_questions = len(session.quiz.questions)
         max_questions = min(200, total_questions)
         
@@ -75,7 +86,6 @@ async def group_quiz_mode_selection(callback: CallbackQuery, state: FSMContext):
             f"Maksimal: <b>{max_questions}</b> ta savol",
             parse_mode="HTML"
         )
-        await state.update_data(group_chat_id=chat_id)
         await callback.answer()
 
 
@@ -184,27 +194,31 @@ async def process_group_quiz_input(message: Message):
             )
 
 
-@router.message(F.text, F.chat.type.in_(["private"]))
-async def process_group_quiz_range(message: Message, state: FSMContext):
-    """Guruh quiz oralig'ini qabul qilish (Faqat private chat'da)"""
+@router.message(F.text, F.chat.type == "private")
+async def process_private_quiz_input(message: Message, state: FSMContext):
+    """Private chat'da rejim tanlash uchun input qabul qilish"""
     data = await state.get_data()
     
-    # Faqat group_chat_id bo'lsa, bu oraliq test uchun
+    # Agar group_chat_id bo'lmasa, bu private chat uchun input emas
     if "group_chat_id" not in data:
         return
     
-    if "group_range_input" not in data:
-        chat_id = data.get("group_chat_id")
-        session = quiz_manager.get_group_session(chat_id)
-        
-        if not session:
-            await message.answer("❌ Test sessiyasi topilmadi")
-            return
-        
-        # Admin tekshirish
-        if message.from_user.id != session.creator_id:
-            return
-        
+    chat_id = data.get("group_chat_id")
+    session = quiz_manager.get_group_session(chat_id)
+    
+    if not session:
+        await message.answer("❌ Test sessiyasi topilmadi")
+        await state.clear()
+        return
+    
+    # Admin tekshirish
+    if message.from_user.id != session.creator_id:
+        return
+    
+    mode = data.get("group_mode")
+    
+    # ORALIQ TEST
+    if mode == "range":
         try:
             parts = message.text.strip().split('-')
             if len(parts) != 2:
@@ -215,7 +229,7 @@ async def process_group_quiz_range(message: Message, state: FSMContext):
             if start < 1 or end <= start:
                 raise ValueError
             
-            # Orqaliq tekshirish
+            # Oraliq tekshirish
             if end > len(session.quiz.questions):
                 await message.answer(
                     f"❌ Noto'g'ri oraliq. Test {len(session.quiz.questions)} ta savolga ega.\n"
@@ -223,7 +237,7 @@ async def process_group_quiz_range(message: Message, state: FSMContext):
                 )
                 return
             
-            # Orqaliq test sozlamalari
+            # Oraliq test sozlamalari
             settings = QuizSettings(
                 quiz_mode="range",
                 start_question=start,
@@ -234,14 +248,14 @@ async def process_group_quiz_range(message: Message, state: FSMContext):
             
             await message.answer(
                 f"🎯 <b>{session.quiz.title}</b>\n\n"
-                f"🔢 <b>Orqaliq test</b> tanlandi\n"
+                f"🔢 <b>Oraliq test</b> tanlandi\n"
                 f"Savollar: {start}-{end}\n"
                 f"Jami: {len(session.quiz.questions)} ta savol\n\n"
                 f"Test 10 soniyadan keyin boshlanadi...",
                 parse_mode="HTML"
             )
             
-            await state.update_data(group_range_input=True)
+            await state.clear()
             await asyncio.sleep(10)
             await show_group_question(message, session)
             
@@ -253,19 +267,8 @@ async def process_group_quiz_range(message: Message, state: FSMContext):
                 parse_mode="HTML"
             )
     
-    # Agar group_range_input bo'lsa, bu tasodifiy test uchun
-    else:
-        chat_id = data.get("group_chat_id")
-        session = quiz_manager.get_group_session(chat_id)
-        
-        if not session:
-            await message.answer("❌ Test sessiyasi topilmadi")
-            return
-        
-        # Admin tekshirish
-        if message.from_user.id != session.creator_id:
-            return
-        
+    # TASODIFIY TEST
+    elif mode == "random":
         try:
             count = int(message.text.strip())
             

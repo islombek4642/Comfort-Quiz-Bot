@@ -2,14 +2,12 @@
 Upload handler
 DOCX fayl yuklash va tekshirish
 """
-import os
-import tempfile
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from bot.states import QuizStates
-from bot.keyboards import MainMenuKeyboard, SettingsKeyboard
+from bot.keyboards import MainMenuKeyboard
 from bot.services import DocxParser
 from bot.models import Quiz
 from bot.database import get_db

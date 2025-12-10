@@ -7,9 +7,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 
-from bot.keyboards import MainMenuKeyboard, SettingsKeyboard
+from bot.keyboards import MainMenuKeyboard, SettingsKeyboard, QuizKeyboard
 from bot.database import get_db
-from bot.states import QuizStates
 from bot.models import Quiz
 
 router = Router(name="start")
@@ -21,13 +20,23 @@ async def cmd_start(message: Message, state: FSMContext):
     /start komandasi
     Deep link orqali test boshlash ham mumkin
     """
+    # Agar guruhda bo'lsa, yo'naltirish habarini chiqar
+    if message.chat.type in ["group", "supergroup"]:
+        await message.answer(
+            "👤 <b>Bu komanda faqat shaxsiy chatda ishlaydi!</b>\n\n"
+            "Botga yozish uchun: @comfort_quiz_bot",
+            parse_mode="HTML"
+        )
+        return
+    
     await state.clear()
     
-    # Deep link tekshirish (quiz_XXXXXX)
+    # Deep link tekshirish (quiz_XXXXXX yoki XXXXXX)
     args = message.text.split()[1] if len(message.text.split()) > 1 else None
     
-    if args and args.startswith("quiz_"):
-        share_code = args.replace("quiz_", "")
+    if args:
+        # "quiz_" prefix'ini olib tashlash (agar bo'lsa)
+        share_code = args.replace("quiz_", "") if args.startswith("quiz_") else args
         db = await get_db()
         quiz = await db.get_quiz_by_share_code(share_code)
         
@@ -100,6 +109,15 @@ async def cmd_start(message: Message, state: FSMContext):
 @router.message(F.text == "❓ Yordam")
 async def show_help(message: Message):
     """Yordam ko'rsatish (/help va "❓ Yordam" tugmasi)"""
+    # Agar guruhda bo'lsa, yo'naltirish habarini chiqar
+    if message.chat.type in ["group", "supergroup"]:
+        await message.answer(
+            "👤 <b>Bu komanda faqat shaxsiy chatda ishlaydi!</b>\n\n"
+            "Botga yozish uchun: @comfort_quiz_bot",
+            parse_mode="HTML"
+        )
+        return
+    
     help_text = (
         "📖 <b>Qo'llanma</b>\n\n"
         "<b>1. Test yaratish:</b>\n"

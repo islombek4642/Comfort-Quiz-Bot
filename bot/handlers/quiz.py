@@ -3,6 +3,7 @@ Quiz handler
 Test jarayonini boshqarish
 """
 import asyncio
+import logging
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 from aiogram.fsm.context import FSMContext
@@ -10,9 +11,9 @@ from aiogram.fsm.context import FSMContext
 from bot.states import QuizStates
 from uuid import uuid4
 from bot.keyboards import MainMenuKeyboard, QuizKeyboard, SettingsKeyboard
-from bot.services import QuizManager, StatisticsService
+from bot.services import StatisticsService
 from bot.services.quiz_manager import quiz_manager
-from bot.models import Quiz, Question
+from bot.models import Quiz
 from bot.database import get_db
 
 router = Router(name="quiz")
@@ -22,7 +23,7 @@ router = Router(name="quiz")
 
 @router.callback_query(F.data.startswith("restart_quiz:"))
 async def restart_quiz(callback: CallbackQuery, state: FSMContext):
-    """Testni qayta boshlash"""
+    """Testni qayta boshlash - rejim tanlash menyusini ko'rsatish"""
     quiz_id = callback.data.split(":")[1]
     
     # Mavjud sessiyani tugatish
@@ -35,34 +36,39 @@ async def restart_quiz(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Test topilmadi", show_alert=True)
         return
     
-    # Yangi sessiya yaratish
-    session = quiz_manager.create_session(callback.from_user.id, quiz)
+    # Quiz ID'ni state'ga saqlash
+    await state.update_data(quiz_id=quiz_id)
     
-    await state.set_state(QuizStates.quiz_in_progress)
-    
+    # Rejim tanlash menyusini ko'rsatish
     await callback.message.edit_text(
-        f"🔄 <b>{quiz.title}</b>\n\n"
-        f"Test qayta boshlanmoqda...",
-        parse_mode="HTML"
+        "� <b>Test rejimini tanlang:</b>\n\n"
+        "• <b>To'liq test</b> - barcha savollar\n"
+        "• <b>Oraliq test</b> - masalan 50–100\n"
+        "• <b>Tasodifiy test</b> - masalan 30 ta savol",
+        parse_mode="HTML",
+        reply_markup=QuizKeyboard.quiz_mode_menu()
     )
     
+    await state.set_state(QuizStates.choosing_quiz_mode)
     await callback.answer()
-    
-    await asyncio.sleep(1)
-    await show_question(callback.message, session, callback.from_user.id)
 
 
 async def show_question(message: Message, session, user_id: int):
     """Joriy savolni ko'rsatish"""
-    question = session.current_question
-    
-    if not question:
-        # Test tugadi
-        await finish_quiz(message, user_id)
+    try:
+        question = session.current_question
+        
+        if not question:
+            # Test tugadi
+            await finish_quiz(message, user_id)
+            return
+        
+        # Savol matni
+        time_limit = session.time_limit
+    except Exception as e:
+        logging.error(f"show_question error: {e}", exc_info=True)
+        await message.answer(f"❌ Xatolik: {e}")
         return
-    
-    # Savol matni
-    time_limit = session.time_limit
     
     question_text = (
         f"<b>{session.current_index + 1}-savol:</b> ({session.progress})\n\n"

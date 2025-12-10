@@ -1,6 +1,7 @@
 from aiogram import Router
 
 from .start import router as start_router
+from .startquiz import router as startquiz_router
 from .upload import router as upload_router
 from .settings import router as settings_router
 from .quiz import router as quiz_router
@@ -14,12 +15,13 @@ from .cancel import router as cancel_router
 def get_all_routers() -> list[Router]:
     """Barcha routerlarni qaytarish"""
     return [
-        start_router,
-        cancel_router,  # Cancel birinchi bo'lishi kerak
+        startquiz_router,  # /startquiz BIRINCHI (guruh va private uchun)
+        start_router,  # Start ikkinchi (/start uchun)
+        cancel_router,  # Cancel uchinchi
         upload_router,
         settings_router,
-        group_quiz_settings_router,  # Group quiz settings birinchi
-        quiz_settings_router,
+        quiz_settings_router,  # Quiz settings (group_quiz_settings'dan oldin)
+        group_quiz_settings_router,  # Group quiz settings
         quiz_router,
         group_router,
         statistics_router,
@@ -29,6 +31,7 @@ def get_all_routers() -> list[Router]:
 __all__ = [
     "get_all_routers",
     "start_router",
+    "startquiz_router",
     "upload_router", 
     "settings_router",
     "quiz_settings_router",

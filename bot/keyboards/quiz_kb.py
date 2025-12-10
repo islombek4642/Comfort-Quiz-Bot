@@ -282,3 +282,17 @@ class QuizKeyboard:
         )
         
         return builder.as_markup()
+    
+    @staticmethod
+    def private_hint_button() -> InlineKeyboardMarkup:
+        """Private chat'ga o'tish tugmasi"""
+        builder = InlineKeyboardBuilder()
+        
+        builder.row(
+            InlineKeyboardButton(
+                text="💬 Private chat'ga o'tish",
+                url="https://t.me/comfort_quiz_bot"
+            )
+        )
+        
+        return builder.as_markup()

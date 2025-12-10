@@ -5,7 +5,7 @@ Guruhda test o'tkazish
 import asyncio
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, ChatMemberUpdated
-from aiogram.filters import ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
+from aiogram.filters import ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER, Command
 from aiogram.exceptions import TelegramRetryAfter
 
 from bot.keyboards import QuizKeyboard, SettingsKeyboard
@@ -216,7 +216,7 @@ async def show_group_question(message: Message, session):
     
     question_text = (
         f"<b>{session.current_index + 1}-savol</b> ({progress})\n\n"
-        f"```\n{question.text}\n```\n\n"
+        f"{question.text}\n\n"
         f"⏱ <b>Vaqt: {time_limit} soniya</b>\n"
         f"👥 Javob berganlar: 0\n\n"
         f"<i>Admin: testni to'xtatish uchun /stop</i>"
@@ -253,7 +253,7 @@ async def update_group_question(question_msg: Message, session):
     
     question_text = (
         f"<b>{session.current_index + 1}-savol</b> ({progress})\n\n"
-        f"```\n{question.text}\n```\n\n"
+        f"{question.text}\n\n"
         f"⏱ <b>Vaqt: {time_limit} soniya</b>\n"
         f"👥 Javob berganlar: 0\n\n"
         f"<i>Admin: testni to'xtatish uchun /stop</i>"
@@ -307,7 +307,7 @@ async def group_countdown_timer(question_msg: Message, session, question_index: 
                     
                     question_text = (
                         f"<b>{question_index + 1}-savol</b> ({progress})\n\n"
-                        f"```\n{question.text}\n```\n\n"
+                        f"{question.text}\n\n"
                         f"{time_emoji} <b>Vaqt: {time_left} soniya</b>\n"
                         f"👥 Javob berganlar: {answered}\n\n"
                         f"<i>Admin: testni to'xtatish uchun /stop</i>"

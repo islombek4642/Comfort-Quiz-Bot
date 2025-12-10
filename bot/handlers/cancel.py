@@ -3,7 +3,7 @@ Cancel handler
 Bekor qilish va /cancel komandasi
 """
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
@@ -56,9 +56,9 @@ async def back_button(message: Message, state: FSMContext):
 
 
 @router.callback_query(F.data == "back_to_quiz_menu")
-async def back_to_quiz_menu(callback):
+async def back_to_quiz_menu(callback: CallbackQuery):
     """Quiz menyusiga qaytish"""
-    data = await callback.message.answer(
+    await callback.message.answer(
         "📋 Menyuga qaytish uchun tugmani bosing.",
         reply_markup=MainMenuKeyboard.main_menu()
     )

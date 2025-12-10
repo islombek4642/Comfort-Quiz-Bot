@@ -1,19 +1,23 @@
 """
-Quiz settings handler
+Quiz settings handler (optimized)
 Test rejimini tanlash va sozlamalarni qo'llash
 """
+
 import asyncio
-from aiogram import Router, F, Bot
+import logging
+from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from bot.states import QuizStates
-from bot.keyboards import MainMenuKeyboard, SettingsKeyboard, QuizKeyboard
-from bot.models import Quiz, Question, QuizSettings
+from bot.keyboards import QuizKeyboard
+from bot.models import QuizSettings
 from bot.database import get_db
 from bot.constants import (
     ERROR_TEST_NOT_FOUND,
     ERROR_ACTIVE_TEST_EXISTS,
+    ERROR_INVALID_FORMAT,
+    ERROR_INVALID_NUMBER,
     MSG_RANGE_FORMAT,
     MSG_NUMBER_RANGE
 )
@@ -23,17 +27,55 @@ from bot.services.quiz_manager import quiz_manager
 router = Router(name="quiz_settings")
 
 
+# =============================
+#     UNIVERSAL HELPERLAR
+# =============================
+
+async def load_quiz(quiz_id: str):
+    """Database'dan testni olish"""
+    db = await get_db()
+    return await db.get_quiz(quiz_id)
+
+
+async def start_quiz_message(message: Message, quiz, session, user_id: int, question_count: int | None = None):
+    """Testni boshlash va birinchi savolni ko'rsatish"""
+    try:
+        count = question_count if question_count else len(session.quiz.questions)
+
+        await message.answer(
+            f"🎯 <b>{quiz.title}</b>\n\n"
+            f"Test boshlanmoqda...\n"
+            f"Savollar soni: {count}\n"
+            f"Vaqt: {quiz.time_display}",
+            parse_mode="HTML"
+        )
+
+        await asyncio.sleep(0.8)
+        await show_question(message, session, user_id)
+    except Exception as e:
+        logging.error(f"start_quiz_message error: {e}", exc_info=True)
+        await message.answer(f"❌ Xatolik: {e}")
+
+
+def check_active_session(user_id: int):
+    """Faol sessiya mavjudligini tekshirish"""
+    return quiz_manager.has_active_session(user_id)
+
+
+# =============================
+#     START QUIZ CALLBACK
+# =============================
+
 @router.callback_query(F.data.startswith("start_quiz:"))
 async def start_quiz_with_settings(callback: CallbackQuery, state: FSMContext):
-    """Testni sozlamalar bilan boshlash"""
     quiz_id = callback.data.split(":")[1]
     await state.update_data(quiz_id=quiz_id)
-    
+
     await callback.message.edit_text(
         "📚 <b>Test rejimini tanlang:</b>\n\n"
-        "• <b>To'liq test</b> - Barcha savollarni yechish\n"
-        "• <b>Oraliq test</b> - Masalan, 50-100 savollarni yechish\n"
-        "• <b>Tasodifiy test</b> - Masalan, 30 ta tasodifiy savol",
+        "• <b>To'liq test</b> - barcha savollar\n"
+        "• <b>Oraliq test</b> - masalan 50–100\n"
+        "• <b>Tasodifiy test</b> - masalan 30 ta savol",
         parse_mode="HTML",
         reply_markup=QuizKeyboard.quiz_mode_menu()
     )
@@ -41,63 +83,43 @@ async def start_quiz_with_settings(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+# =============================
+#     FULL MODE
+# =============================
+
 @router.callback_query(QuizStates.choosing_quiz_mode, F.data == "quiz_mode:full")
 async def set_full_quiz(callback: CallbackQuery, state: FSMContext):
-    """To'liq test rejimi"""
     data = await state.get_data()
     quiz_id = data.get("quiz_id")
-    
-    db = await get_db()
-    quiz = await db.get_quiz(quiz_id)
-    
+
+    quiz = await load_quiz(quiz_id)
     if not quiz:
-        await callback.answer(ERROR_TEST_NOT_FOUND, show_alert=True)
-        return
-    
-    # Mavjud sessiyani tekshirish
-    if quiz_manager.has_active_session(callback.from_user.id):
-        await callback.answer(ERROR_ACTIVE_TEST_EXISTS, show_alert=True)
-        return
-    
-    # To'liq test sozlamalari
+        return await callback.answer(ERROR_TEST_NOT_FOUND, show_alert=True)
+
+    if check_active_session(callback.from_user.id):
+        return await callback.answer(ERROR_ACTIVE_TEST_EXISTS, show_alert=True)
+
     settings = QuizSettings(quiz_mode="full")
-    
-    # Sessiyani yaratish
-    session = quiz_manager.create_session(
-        callback.from_user.id,
-        quiz,
-        settings
-    )
-    
+    session = quiz_manager.create_session(callback.from_user.id, quiz, settings)
+
     await state.set_state(QuizStates.quiz_in_progress)
     await state.update_data(current_quiz_id=quiz_id)
-    
-    await callback.message.edit_text(
-        f"🎯 <b>{quiz.title}</b>\n\n"
-        f"Test boshlanmoqda...\n"
-        f"Savollar soni: {len(quiz.questions)}\n"
-        f"Vaqt: {quiz.time_display}",
-        parse_mode="HTML"
-    )
-    
-    await callback.answer()
-    
-    # Birinchi savolni ko'rsatish
-    await asyncio.sleep(1)
-    await show_question(callback.message, session, callback.from_user.id)
 
+    await callback.message.edit_text("⏳ Test boshlanmoqda...")
+    await callback.answer()
+
+    await start_quiz_message(callback.message, quiz, session, callback.from_user.id)
+
+
+# =============================
+#     RANGE MODE
+# =============================
 
 @router.callback_query(QuizStates.choosing_quiz_mode, F.data == "quiz_mode:range")
 async def set_range_quiz(callback: CallbackQuery, state: FSMContext):
-    """Oraliq test rejimi"""
-    data = await state.get_data()
-    quiz_id = data.get("quiz_id")
-    
     await callback.message.edit_text(
-        "🔢 <b>Test oralig'ini kiriting:</b>\n\n"
-        "Misol: <code>1-50</code> yoki <code>50-100</code>\n\n"
-        "Birinchi raqam - boshlang'ich savol\n"
-        "Ikkinchi raqam - oxirgi savol",
+        "🔢 <b>Test oralig'ini kiriting:</b>\n"
+        "Masalan: <code>20-50</code>\n",
         parse_mode="HTML"
     )
     await state.set_state(QuizStates.entering_quiz_range)
@@ -106,174 +128,144 @@ async def set_range_quiz(callback: CallbackQuery, state: FSMContext):
 
 @router.message(QuizStates.entering_quiz_range)
 async def process_quiz_range(message: Message, state: FSMContext):
-    """Test oraliqini qabul qilish"""
     try:
-        parts = message.text.strip().split('-')
+        parts = message.text.replace(" ", "").split("-")
         if len(parts) != 2:
             raise ValueError
-        
-        start, end = int(parts[0].strip()), int(parts[1].strip())
-        
+
+        start, end = int(parts[0]), int(parts[1])
+
         if start < 1 or end <= start:
             raise ValueError
-        
+
         data = await state.get_data()
         quiz_id = data.get("quiz_id")
         
         if not quiz_id:
-            await message.answer("❌ Test topilmadi")
+            await message.answer("❌ Test ID topilmadi. Qaytadan boshlang.")
+            await state.clear()
             return
         
-        db = await get_db()
-        quiz = await db.get_quiz(quiz_id)
-        
+        quiz = await load_quiz(quiz_id)
+
         if not quiz:
-            await message.answer("❌ Test topilmadi")
-            return
-        
-        # Oraliq tekshirish
+            return await message.answer(ERROR_TEST_NOT_FOUND)
+
         if end > len(quiz.questions):
-            await message.answer(
-                f"❌ Noto'g'ri oraliq. Test {len(quiz.questions)} ta savolga ega.\n"
-                f"Iltimos, 1 dan {len(quiz.questions)} gacha bo'lgan oraliq kiriting."
+            return await message.answer(
+                f"❌ Test {len(quiz.questions)} ta savolga ega.\n"
+                f"Iltimos, to‘g‘ri oraliq kiriting."
             )
-            return
-        
-        # Mavjud sessiyani tekshirish
-        if quiz_manager.has_active_session(message.from_user.id):
-            await message.answer("⚠️ Sizda allaqachon faol test bor!")
-            return
-        
-        # Oraliq test sozlamalari
+
+        if check_active_session(message.from_user.id):
+            return await message.answer(ERROR_ACTIVE_TEST_EXISTS)
+
         settings = QuizSettings(
             quiz_mode="range",
             start_question=start,
             end_question=end
         )
-        
-        # Sessiyani yaratish
-        session = quiz_manager.create_session(
-            message.from_user.id,
-            quiz,
-            settings
-        )
-        
+
+        session = quiz_manager.create_session(message.from_user.id, quiz, settings)
+        count = end - start + 1
+
         await state.set_state(QuizStates.quiz_in_progress)
-        await state.update_data(current_quiz_id=quiz_id)
-        
-        await message.answer(
-            f"🎯 <b>{quiz.title}</b>\n\n"
-            f"Test boshlanmoqda...\n"
-            f"Savollar soni: {len(session.quiz.questions)}\n"
-            f"Vaqt: {quiz.time_display}",
-            parse_mode="HTML"
-        )
-        
-        # Birinchi savolni ko'rsatish
-        await asyncio.sleep(1)
-        await show_question(message, session, message.from_user.id)
-        
+
+        await start_quiz_message(message, quiz, session, message.from_user.id, question_count=count)
+
     except (ValueError, IndexError):
         await message.answer(
-            f"{ERROR_INVALID_FORMAT}\n\n{MSG_RANGE_FORMAT}",
+            f"{ERROR_INVALID_FORMAT}\n\n{MSG_RANGE_FORMAT}\n\n"
+            f"❌ Qaytadan urinib ko'ring yoki /cancel bosing.",
+            parse_mode="HTML"
+        )
+        # State'ni o'zgartirmang - foydalanuvchi qaytadan urinishi mumkin
+    except Exception as e:
+        logging.error(f"process_quiz_range error: {e}", exc_info=True)
+        await message.answer(
+            f"❌ <b>Xatolik yuz berdi!</b>\n\n"
+            f"Iltimos, qaytadan urinib ko'ring yoki /cancel bosing.",
             parse_mode="HTML"
         )
 
+
+# =============================
+#     RANDOM MODE
+# =============================
 
 @router.callback_query(QuizStates.choosing_quiz_mode, F.data == "quiz_mode:random")
 async def set_random_quiz(callback: CallbackQuery, state: FSMContext):
-    """Tasodifiy test rejimi"""
     data = await state.get_data()
     quiz_id = data.get("quiz_id")
-    
-    db = await get_db()
-    quiz = await db.get_quiz(quiz_id)
-    
+
+    quiz = await load_quiz(quiz_id)
     if not quiz:
-        await callback.answer(ERROR_TEST_NOT_FOUND, show_alert=True)
-        return
-    
-    total_questions = len(quiz.questions)
-    max_questions = min(200, total_questions)
-    
+        return await callback.answer(ERROR_TEST_NOT_FOUND, show_alert=True)
+
+    total = len(quiz.questions)
+    max_allowed = min(200, total)
+
     await callback.message.edit_text(
-        f"🎲 <b>Nechta savoldan test tayyorlaylik?</b>\n\n"
-        f"Masalan: <code>30</code>\n\n"
-        f"📊 Testda jami: <b>{total_questions}</b> ta savol\n"
-        f"Maksimal: <b>{max_questions}</b> ta savol",
+        f"🎲 <b>Nechta tasodifiy savol?</b>\n"
+        f"Testda jami: <b>{total}</b>\n"
+        f"Maksimal: <b>{max_allowed}</b>",
         parse_mode="HTML"
     )
+
     await state.set_state(QuizStates.entering_question_count)
-    await state.update_data(quiz_id=quiz_id)
     await callback.answer()
 
 
 @router.message(QuizStates.entering_question_count)
 async def process_question_count(message: Message, state: FSMContext):
-    """Savollar sonini qabul qilish"""
     try:
-        count = int(message.text.strip())
-        
-        if not 1 <= count <= 200:
-            raise ValueError
-        
+        count = int(message.text)
+
         data = await state.get_data()
         quiz_id = data.get("quiz_id")
         
         if not quiz_id:
-            await message.answer("❌ Test topilmadi")
+            await message.answer("❌ Test ID topilmadi. Qaytadan boshlang.")
+            await state.clear()
             return
         
-        db = await get_db()
-        quiz = await db.get_quiz(quiz_id)
-        
+        quiz = await load_quiz(quiz_id)
+
         if not quiz:
-            await message.answer("❌ Test topilmadi")
-            return
-        
-        # Savollar sonini tekshirish
-        if count > len(quiz.questions):
-            await message.answer(
-                f"❌ Test {len(quiz.questions)} ta savolga ega.\n"
-                f"Iltimos, 1 dan {len(quiz.questions)} gacha bo'lgan son kiriting."
+            return await message.answer(ERROR_TEST_NOT_FOUND)
+
+        total = len(quiz.questions)
+        if not 1 <= count <= total:
+            return await message.answer(
+                f"❌ Testda {total} ta savol mavjud.\n"
+                f"Iltimos, to‘g‘ri son kiriting."
             )
-            return
-        
-        # Mavjud sessiyani tekshirish
-        if quiz_manager.has_active_session(message.from_user.id):
-            await message.answer("⚠️ Sizda allaqachon faol test bor!")
-            return
-        
-        # Tasodifiy test sozlamalari
+
+        if check_active_session(message.from_user.id):
+            return await message.answer(ERROR_ACTIVE_TEST_EXISTS)
+
         settings = QuizSettings(
             quiz_mode="random",
             question_count=count
         )
-        
-        # Sessiyani yaratish
-        session = quiz_manager.create_session(
-            message.from_user.id,
-            quiz,
-            settings
-        )
-        
+
+        session = quiz_manager.create_session(message.from_user.id, quiz, settings)
+
         await state.set_state(QuizStates.quiz_in_progress)
-        await state.update_data(current_quiz_id=quiz_id)
-        
-        await message.answer(
-            f"🎯 <b>{quiz.title}</b>\n\n"
-            f"Test boshlanmoqda...\n"
-            f"Savollar soni: {len(session.quiz.questions)}\n"
-            f"Vaqt: {quiz.time_display}",
-            parse_mode="HTML"
-        )
-        
-        # Birinchi savolni ko'rsatish
-        await asyncio.sleep(1)
-        await show_question(message, session, message.from_user.id)
-        
+
+        await start_quiz_message(message, quiz, session, message.from_user.id, question_count=count)
+
     except ValueError:
         await message.answer(
-            f"{ERROR_INVALID_NUMBER}\n\n{MSG_NUMBER_RANGE}",
+            f"{ERROR_INVALID_NUMBER}\n\n{MSG_NUMBER_RANGE}\n\n"
+            f"❌ Qaytadan urinib ko'ring yoki /cancel bosing.",
+            parse_mode="HTML"
+        )
+        # State'ni o'zgartirmang - foydalanuvchi qaytadan urinishi mumkin
+    except Exception as e:
+        logging.error(f"process_question_count error: {e}", exc_info=True)
+        await message.answer(
+            f"❌ <b>Xatolik yuz berdi!</b>\n\n"
+            f"Iltimos, qaytadan urinib ko'ring yoki /cancel bosing.",
             parse_mode="HTML"
         )

@@ -13,7 +13,7 @@ Word (DOCX) fayllaridan avtomatik test yaratuvchi Telegram bot.
 
 ## 🏗 Loyiha Strukturasi
 
-```
+```text
 QuizBot/
 ├── bot/
 │   ├── __init__.py
@@ -110,7 +110,7 @@ python run.py
 
 ### Format 1: So'roq belgisi bilan (Tavsiya etiladi)
 
-```
+```text
 ?Qaysi javobda axborot o'lchov birliklari o'sib borish tartibida ko'rsatilgan?
 +bit, bayt, kilobayt, megabayt, gigabayt
 =bayt, bit, megabayt, kilobayt, gigabayt
@@ -132,7 +132,7 @@ python run.py
 
 ### Format 2: Klassik format
 
-```
+```text
 1. Savol matni?
 A) Birinchi variant
 B) Ikkinchi variant
@@ -154,7 +154,7 @@ D) Variant 4
 
 ## 🎮 Foydalanish
 
-### Shaxsiy chatda:
+### Shaxsiy chatda
 
 1. Botga `/start` yozing
 2. "📄 Test yuklash" tugmasini bosing
@@ -163,7 +163,7 @@ D) Variant 4
 5. Vaqt va sozlamalarni tanlang
 6. Testni boshlang!
 
-### Guruhda:
+### Guruhda
 
 1. Botni guruhga qo'shing
 2. Admin huquqini bering
@@ -200,7 +200,7 @@ MIT License
 
 ## 👨‍💻 Muallif
 
-Xamidullayev Islombek - https://t.me/xamidullayev_i
+Xamidullayev Islombek - [https://t.me/xamidullayev_i](https://t.me/xamidullayev_i)
 
 ---
 

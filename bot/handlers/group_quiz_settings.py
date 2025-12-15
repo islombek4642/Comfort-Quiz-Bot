@@ -31,10 +31,12 @@ async def is_admin(user_id: int, session, bot: Bot):
     
     # Guruh adminini tekshirish
     try:
+        print(f"DEBUG is_admin: Checking user_id={user_id}, chat_id={session.chat_id}")
         member = await bot.get_chat_member(session.chat_id, user_id)
+        print(f"DEBUG is_admin: member.status={member.status}")
         return member.status in ["creator", "administrator"]
     except Exception as e:
-        print(f"DEBUG is_admin: Exception - {e}")
+        print(f"DEBUG is_admin: Exception - {e}, user_id={user_id}, chat_id={session.chat_id}")
         return False
 
 

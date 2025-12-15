@@ -151,7 +151,12 @@ async def process_group_input(message: Message, state: FSMContext, bot: Bot):
 
     mode = session.waiting_mode
 
-    if not await is_admin(message.from_user.id, session, bot):
+    # Debug
+    is_creator = message.from_user.id == session.creator_id
+    admin_result = await is_admin(message.from_user.id, session, bot)
+    print(f"DEBUG oraliq: user_id={message.from_user.id}, creator_id={session.creator_id}, is_creator={is_creator}, is_admin={admin_result}, mode={mode}")
+    
+    if not admin_result:
         await message.answer("❌ Faqat admin kirita oladi!", parse_mode="HTML")
         return
 

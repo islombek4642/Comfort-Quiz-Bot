@@ -531,8 +531,16 @@ async def stop_group_quiz_command(message: Message, bot: Bot):
         return
     
     # Faqat test boshlagan yoki admin to'xtata oladi
-    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-    if message.from_user.id != session.creator_id and member.status not in ["creator", "administrator"]:
+    is_creator = message.from_user.id == session.creator_id
+    is_admin = False
+    
+    try:
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        is_admin = member.status in ["creator", "administrator"]
+    except Exception:
+        pass
+    
+    if not is_creator and not is_admin:
         await message.answer(
             "❌ Faqat test boshlagan yoki admin testni to'xtata oladi.",
             parse_mode="HTML"

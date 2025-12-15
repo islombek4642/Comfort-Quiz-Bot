@@ -59,7 +59,11 @@ def parse_range(text: str) -> tuple[int, int] | None:
 def parse_number(text: str) -> int | None:
     """Faqat son"""
     try:
-        num = int(text)
+        import re
+        match = re.search(r'(\d+)', text)
+        if not match:
+            return None
+        num = int(match.group(1))
         if num < 1:
             return None
         return num

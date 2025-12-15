@@ -177,6 +177,7 @@ class GroupQuizSession:
         self.started_at = datetime.now()
         self.is_active = True
         self.answered_current: set[int] = set()  # Joriy savolga javob berganlar
+        self.waiting_mode: Optional[str] = None  # "range" yoki "random" - input kutish rejimi
         
         # Quizni sozlamalar asosida tayyorlash
         self._prepare_quiz_with_settings()

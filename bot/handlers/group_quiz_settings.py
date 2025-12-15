@@ -107,10 +107,8 @@ async def group_quiz_mode(callback: CallbackQuery, state: FSMContext, bot: Bot):
         return
 
     # RANGE / RANDOM → Guruh chat'ida kiritiladi
-    await state.update_data(
-        group_chat_id=callback.message.chat.id,
-        mode=mode
-    )
+    # Session'da waiting_mode'ni o'rnatish
+    session.waiting_mode = mode
 
     if mode == "range":
         await callback.answer("✏️ Iltimos, oraliqni kiriting")
@@ -135,23 +133,15 @@ async def group_quiz_mode(callback: CallbackQuery, state: FSMContext, bot: Bot):
 
 @router.message((F.chat.type == "group") | (F.chat.type == "supergroup"))
 async def process_group_input(message: Message, state: FSMContext, bot: Bot):
-    data = await state.get_data()
-    
-    # Faqat group_chat_id va mode state'da bo'lsa ishlash
-    # Agar bu state'lar bo'lmasa, boshqa handler'larga o'tish
-    if "group_chat_id" not in data or "mode" not in data:
+    # Guruh chat'ida faol sessiyani topish
+    session = quiz_manager.get_group_session(message.chat.id)
+    if not session or not session.waiting_mode:
         return
 
-    chat_id = data["group_chat_id"]
-    mode = data["mode"]
-
-    session = quiz_manager.get_group_session(chat_id)
-    if not session:
-        await message.answer("❌ Test sessiyasi topilmadi")
-        await state.clear()
-        return
+    mode = session.waiting_mode
 
     if not await is_admin(message.from_user.id, session, bot):
+        await message.answer("❌ Faqat admin kirita oladi!", parse_mode="HTML")
         return
 
     # RANGE MODE
@@ -183,7 +173,7 @@ async def process_group_input(message: Message, state: FSMContext, bot: Bot):
             f"Jami: {end - start + 1} ta savol",
             parse_mode="HTML"
         )
-        await state.clear()
+        session.waiting_mode = None
         return await start_group_quiz(message, session)
 
     # RANDOM MODE
@@ -210,5 +200,5 @@ async def process_group_input(message: Message, state: FSMContext, bot: Bot):
             f"🎲 Tasodifiy test: {num} ta savol",
             parse_mode="HTML"
         )
-        await state.clear()
+        session.waiting_mode = None
         await start_group_quiz(message, session)

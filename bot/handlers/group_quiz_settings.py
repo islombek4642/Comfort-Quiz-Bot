@@ -140,6 +140,10 @@ async def group_quiz_mode(callback: CallbackQuery, state: FSMContext, bot: Bot):
 
 @router.message((F.chat.type == "group") | (F.chat.type == "supergroup"))
 async def process_group_input(message: Message, state: FSMContext, bot: Bot):
+    # /stop komandasi uchun - boshqa handler'ga o'tish
+    if message.text and message.text.startswith("/stop"):
+        return
+    
     # Guruh chat'ida faol sessiyani topish
     session = quiz_manager.get_group_session(message.chat.id)
     if not session or not session.waiting_mode:

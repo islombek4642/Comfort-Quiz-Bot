@@ -137,7 +137,10 @@ async def group_quiz_mode(callback: CallbackQuery, state: FSMContext, bot: Bot):
 #         GROUP INPUT
 # ================================
 
-@router.message((F.chat.type == "group") | (F.chat.type == "supergroup"))
+@router.message(
+    ((F.chat.type == "group") | (F.chat.type == "supergroup")),
+    ~F.text.startswith("/")
+)
 async def process_group_input(message: Message, state: FSMContext, bot: Bot):
     # Guruh chat'ida faol sessiyani topish
     session = quiz_manager.get_group_session(message.chat.id)

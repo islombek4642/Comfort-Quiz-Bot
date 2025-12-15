@@ -31,12 +31,9 @@ async def is_admin(user_id: int, session, bot: Bot):
     
     # Guruh adminini tekshirish
     try:
-        print(f"DEBUG is_admin: Checking user_id={user_id}, chat_id={session.chat_id}")
         member = await bot.get_chat_member(session.chat_id, user_id)
-        print(f"DEBUG is_admin: member.status={member.status}")
         return member.status in ["creator", "administrator"]
-    except Exception as e:
-        print(f"DEBUG is_admin: Exception - {e}, user_id={user_id}, chat_id={session.chat_id}")
+    except Exception:
         return False
 
 
@@ -142,10 +139,6 @@ async def group_quiz_mode(callback: CallbackQuery, state: FSMContext, bot: Bot):
 
 @router.message((F.chat.type == "group") | (F.chat.type == "supergroup"))
 async def process_group_input(message: Message, state: FSMContext, bot: Bot):
-    # /stop komandasi uchun - boshqa handler'ga o'tish
-    if message.text and message.text.startswith("/stop"):
-        return
-    
     # Guruh chat'ida faol sessiyani topish
     session = quiz_manager.get_group_session(message.chat.id)
     if not session or not session.waiting_mode:
@@ -153,12 +146,7 @@ async def process_group_input(message: Message, state: FSMContext, bot: Bot):
 
     mode = session.waiting_mode
 
-    # Debug
-    is_creator = message.from_user.id == session.creator_id
-    admin_result = await is_admin(message.from_user.id, session, bot)
-    print(f"DEBUG oraliq: user_id={message.from_user.id}, creator_id={session.creator_id}, is_creator={is_creator}, is_admin={admin_result}, mode={mode}")
-    
-    if not admin_result:
+    if not await is_admin(message.from_user.id, session, bot):
         await message.answer("❌ Faqat admin kirita oladi!", parse_mode="HTML")
         return
 

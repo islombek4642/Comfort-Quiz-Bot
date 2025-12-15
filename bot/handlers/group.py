@@ -407,7 +407,7 @@ async def process_group_answer(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("group_next:"))
-async def next_group_question(callback: CallbackQuery):
+async def next_group_question(callback: CallbackQuery, bot: Bot):
     """Keyingi savolga o'tish (admin uchun)"""
     session_id = callback.data.split(":")[1]
     chat_id = int(session_id)
@@ -418,9 +418,19 @@ async def next_group_question(callback: CallbackQuery):
         await callback.answer("❌ Test topilmadi", show_alert=True)
         return
     
-    # Admin tekshirish
-    if callback.from_user.id != session.creator_id:
-        await callback.answer("⚠️ Faqat test boshlagan admin o'tkazishi mumkin", show_alert=True)
+    # Admin tekshirish - test boshlagan yoki guruh admini
+    is_creator = callback.from_user.id == session.creator_id
+    is_group_admin = False
+    
+    if not is_creator:
+        try:
+            member = await bot.get_chat_member(chat_id, callback.from_user.id)
+            is_group_admin = member.status in ["creator", "administrator"]
+        except Exception:
+            pass
+    
+    if not is_creator and not is_group_admin:
+        await callback.answer("⚠️ Faqat test boshlagan yoki guruh admini o'tkazishi mumkin", show_alert=True)
         return
     
     if session.next_question():
@@ -431,7 +441,7 @@ async def next_group_question(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("group_end:"))
-async def end_group_quiz(callback: CallbackQuery):
+async def end_group_quiz(callback: CallbackQuery, bot: Bot):
     """Testni muddatidan oldin tugatish"""
     session_id = callback.data.split(":")[1]
     chat_id = int(session_id)
@@ -442,7 +452,18 @@ async def end_group_quiz(callback: CallbackQuery):
         await callback.answer("❌ Test topilmadi", show_alert=True)
         return
     
-    if callback.from_user.id != session.creator_id:
+    # Admin tekshirish - test boshlagan yoki guruh admini
+    is_creator = callback.from_user.id == session.creator_id
+    is_group_admin = False
+    
+    if not is_creator:
+        try:
+            member = await bot.get_chat_member(chat_id, callback.from_user.id)
+            is_group_admin = member.status in ["creator", "administrator"]
+        except Exception:
+            pass
+    
+    if not is_creator and not is_group_admin:
         await callback.answer("⚠️ Faqat admin tugatishi mumkin", show_alert=True)
         return
     
@@ -451,7 +472,7 @@ async def end_group_quiz(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("group_stop:"))
-async def stop_group_quiz(callback: CallbackQuery):
+async def stop_group_quiz(callback: CallbackQuery, bot: Bot):
     """Testni to'xtatish (admin uchun)"""
     session_id = callback.data.split(":")[1]
     chat_id = int(session_id)
@@ -462,8 +483,18 @@ async def stop_group_quiz(callback: CallbackQuery):
         await callback.answer("❌ Test topilmadi", show_alert=True)
         return
     
-    # Faqat admin to'xtata oladi
-    if callback.from_user.id != session.creator_id:
+    # Admin tekshirish - test boshlagan yoki guruh admini
+    is_creator = callback.from_user.id == session.creator_id
+    is_group_admin = False
+    
+    if not is_creator:
+        try:
+            member = await bot.get_chat_member(chat_id, callback.from_user.id)
+            is_group_admin = member.status in ["creator", "administrator"]
+        except Exception:
+            pass
+    
+    if not is_creator and not is_group_admin:
         await callback.answer("⚠️ Faqat admin testni to'xtata oladi", show_alert=True)
         return
     
@@ -541,10 +572,14 @@ async def restart_group_quiz(callback: CallbackQuery, bot: Bot):
     """Guruh testini qayta boshlash"""
     quiz_id = callback.data.split(":")[1]
     
-    # Admin tekshirish
-    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-    if member.status not in ["creator", "administrator"]:
-        await callback.answer("⚠️ Faqat admin qayta boshlashi mumkin", show_alert=True)
+    # Admin tekshirish - guruh admini
+    try:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["creator", "administrator"]:
+            await callback.answer("⚠️ Faqat admin qayta boshlashi mumkin", show_alert=True)
+            return
+    except Exception:
+        await callback.answer("❌ Xatolik yuz berdi", show_alert=True)
         return
     
     db = await get_db()

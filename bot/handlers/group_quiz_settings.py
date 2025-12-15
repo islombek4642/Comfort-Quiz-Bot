@@ -4,7 +4,7 @@ Guruh test rejimini tanlash, sozlash va start berish
 """
 
 import asyncio
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
@@ -23,9 +23,18 @@ router = Router(name="group_quiz_settings")
 #      HELPERS & VALIDATORS
 # ================================
 
-async def is_admin(user_id: int, session):
-    """Foydalanuvchi adminmi yoki sesiyani yaratganmi"""
-    return user_id == session.creator_id
+async def is_admin(user_id: int, session, bot: Bot):
+    """Foydalanuvchi adminmi yoki sesiyani yaratganmi yoki guruh adminimi"""
+    # Sesiyani yaratgan foydalanuvchi
+    if user_id == session.creator_id:
+        return True
+    
+    # Guruh adminini tekshirish
+    try:
+        member = await bot.get_chat_member(session.chat_id, user_id)
+        return member.status in ["creator", "administrator"]
+    except Exception:
+        return False
 
 
 def parse_range(text: str) -> tuple[int, int] | None:
@@ -74,16 +83,15 @@ async def start_group_quiz(message: Message, session, delay: int = 10):
 # ================================
 
 @router.callback_query(F.data.startswith("group_quiz_mode:"))
-async def group_quiz_mode(callback: CallbackQuery, state: FSMContext):
+async def group_quiz_mode(callback: CallbackQuery, state: FSMContext, bot: Bot):
     parts = callback.data.split(":")
     mode = parts[1]
-    chat_id = int(parts[2])
 
     session = quiz_manager.get_group_session(callback.message.chat.id)
     if not session:
         return await callback.answer("❌ Test sessiyasi mavjud emas", show_alert=True)
 
-    if not await is_admin(callback.from_user.id, session):
+    if not await is_admin(callback.from_user.id, session, bot):
         return await callback.answer("❌ Faqat admin tanlay oladi!", show_alert=True)
 
     # FULL MODE
@@ -126,7 +134,7 @@ async def group_quiz_mode(callback: CallbackQuery, state: FSMContext):
 # ================================
 
 @router.message((F.chat.type == "group") | (F.chat.type == "supergroup"))
-async def process_group_input(message: Message, state: FSMContext):
+async def process_group_input(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     
     # Faqat group_chat_id va mode state'da bo'lsa ishlash
@@ -143,7 +151,7 @@ async def process_group_input(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    if not await is_admin(message.from_user.id, session):
+    if not await is_admin(message.from_user.id, session, bot):
         return
 
     # RANGE MODE
@@ -168,6 +176,7 @@ async def process_group_input(message: Message, state: FSMContext):
             start_question=start,
             end_question=end
         )
+        session._prepare_quiz_with_settings()
 
         await message.answer(
             f"🎯 Oraliq belgilandi: {start}-{end}\n"
@@ -195,6 +204,7 @@ async def process_group_input(message: Message, state: FSMContext):
             quiz_mode="random",
             question_count=num
         )
+        session._prepare_quiz_with_settings()
 
         await message.answer(
             f"🎲 Tasodifiy test: {num} ta savol",

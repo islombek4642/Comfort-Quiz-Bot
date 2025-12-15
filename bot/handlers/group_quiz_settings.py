@@ -33,18 +33,21 @@ async def is_admin(user_id: int, session, bot: Bot):
     try:
         member = await bot.get_chat_member(session.chat_id, user_id)
         return member.status in ["creator", "administrator"]
-    except Exception:
+    except Exception as e:
+        print(f"DEBUG is_admin: Exception - {e}")
         return False
 
 
 def parse_range(text: str) -> tuple[int, int] | None:
     """1-50 formatni parse qilish"""
     try:
-        parts = text.replace(" ", "").split("-")
-        if len(parts) != 2:
+        # Faqat raqamlar va "-" belgisini qoldirib, qolganini olib tashlash
+        import re
+        match = re.search(r'(\d+)\s*-\s*(\d+)', text)
+        if not match:
             return None
-
-        start, end = int(parts[0]), int(parts[1])
+        
+        start, end = int(match.group(1)), int(match.group(2))
         if start < 1 or end <= start:
             return None
 
